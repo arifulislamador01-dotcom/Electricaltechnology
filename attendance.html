@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance — EduBD Pro</title>
+  <meta name="description" content="Subject-wise attendance tracker for polytechnic students">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .gauge-wrap { text-align:center; margin-bottom:10px; }
+    .gauge-circle {
+      width: 90px; height: 90px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: 800; margin: 0 auto 8px;
+      position: relative;
+    }
+    .attend-info { display:flex; justify-content:space-between; font-size:0.82rem; color:var(--text-secondary); margin-top:10px; }
+    .warning-box { background:rgba(255,107,107,0.08); border:1px solid rgba(255,107,107,0.25); border-radius:12px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; gap:12px; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-brand"><div class="logo-icon">⚡</div><span>EduBD Pro</span></div>
+    <div class="nav-right">
+      <div class="nav-notif" onclick="window.location.href='notifications.html'">🔔<span class="notif-badge" id="notifBadge" style="display:none;">0</span></div>
+      <div class="nav-avatar" id="navAvatar">A</div>
+      <span id="navName" style="font-weight:600;font-size:0.9rem;color:var(--text-secondary);"></span>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+      <button id="menuToggle" style="display:none;background:var(--bg-card2);border:1px solid var(--border);color:var(--text-primary);padding:8px;border-radius:8px;font-size:1.2rem;">☰</button>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <ul class="sidebar-menu">
+        <li><span class="sidebar-section">Main Menu</span></li>
+        <li><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="attendance.html"><span class="icon">📅</span> Attendance</a></li>
+        <li><a href="submissions.html"><span class="icon">📝</span> Submissions</a></li>
+        <li><a href="syllabus.html"><span class="icon">📚</span> Syllabus</a></li>
+        <li><a href="notifications.html"><span class="icon">🔔</span> Notifications</a></li>
+        <li><span class="sidebar-section">Account</span></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">📅 Attendance Tracker</h1>
+        <p class="page-subtitle">সাবজেক্ট-ওয়াইজ উপস্থিতির বিস্তারিত তথ্য দেখুন</p>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="stats-grid" id="summaryStats"></div>
+
+      <!-- Warning -->
+      <div class="warning-box" id="warningBox" style="display:none;">
+        <span style="font-size:1.5rem;">⚠️</span>
+        <div>
+          <strong style="color:var(--warning);">সতর্কতা!</strong>
+          <p id="warningMsg" style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px;"></p>
+        </div>
+      </div>
+
+      <!-- Attendance Cards -->
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;">সাবজেক্ট-ওয়াইজ উপস্থিতি</h3>
+      <div class="attendance-grid" id="attendanceGrid"></div>
+
+      <!-- Detailed Table -->
+      <div class="card" style="margin-top:28px;">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:20px;">📊 বিস্তারিত Attendance Table</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>সাবজেক্ট</th>
+                <th>Code</th>
+                <th>মোট ক্লাস</th>
+                <th>উপস্থিত</th>
+                <th>অনুপস্থিত</th>
+                <th>শতাংশ</th>
+                <th>অবস্থা</th>
+              </tr>
+            </thead>
+            <tbody id="attendTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    requireLogin();
+    const user = getCurrentUser();
+    const attendance = store.get('attendance') || {};
+    const myAttend = attendance[user.id] || {};
+
+    let totalPct = 0, lowCount = 0, goodCount = 0, totalClasses = 0, totalPresent = 0;
+
+    // Cards
+    const grid = document.getElementById('attendanceGrid');
+    const tableBody = document.getElementById('attendTable');
+    const warningSubjects = [];
+
+    SUBJECTS_7TH.forEach(s => {
+      const a = myAttend[s.code] || { total: 20, attended: 15 };
+      const pct = Math.round((a.attended / a.total) * 100);
+      totalPct += pct;
+      totalClasses += a.total;
+      totalPresent += a.attended;
+      if (pct < 75) { lowCount++; warningSubjects.push(s.short); }
+      else goodCount++;
+
+      const cls = pct >= 75 ? 'good' : pct >= 60 ? 'avg' : 'bad';
+      const color = pct >= 75 ? 'var(--success)' : pct >= 60 ? 'var(--yellow)' : 'var(--warning)';
+      const badge = pct >= 75 ? 'badge-success' : pct >= 60 ? 'badge-yellow' : 'badge-danger';
+      const status = pct >= 75 ? '✅ নিরাপদ' : pct >= 60 ? '⚠️ সতর্কতা' : '❌ বিপদে';
+
+      // Card
+      grid.innerHTML += `
+        <div class="attend-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:0.7rem;font-weight:700;color:var(--primary-light);letter-spacing:1px;margin-bottom:4px;">${s.code}</div>
+              <div class="attend-subject">${s.name}</div>
+            </div>
+            <div style="font-size:2rem;font-weight:800;color:${color};">${pct}%</div>
+          </div>
+          <div class="progress-bar" style="margin:10px 0 8px;">
+            <div class="progress-fill ${cls === 'good' ? '' : cls === 'avg' ? 'warning' : 'danger'}" style="width:${pct}%"></div>
+          </div>
+          <div class="attend-info">
+            <span>উপস্থিত: <strong style="color:var(--text-primary);">${a.attended}</strong></span>
+            <span>মোট: <strong style="color:var(--text-primary);">${a.total}</strong></span>
+            <span>অনুপস্থিত: <strong style="color:var(--warning);">${a.total - a.attended}</strong></span>
+          </div>
+          <div style="margin-top:10px;">
+            <span class="badge ${badge}">${status}</span>
+          </div>
+        </div>`;
+
+      // Table row
+      tableBody.innerHTML += `
+        <tr>
+          <td style="font-weight:600;">${s.short}</td>
+          <td><span class="badge badge-primary">${s.code}</span></td>
+          <td>${a.total}</td>
+          <td style="color:var(--success);font-weight:700;">${a.attended}</td>
+          <td style="color:var(--warning);font-weight:700;">${a.total - a.attended}</td>
+          <td><strong style="color:${color};">${pct}%</strong></td>
+          <td><span class="badge ${badge}">${status}</span></td>
+        </tr>`;
+    });
+
+    const avg = Math.round(totalPct / SUBJECTS_7TH.length);
+
+    // Summary stats
+    const statsEl = document.getElementById('summaryStats');
+    statsEl.innerHTML = `
+      <div class="stat-card teal"><div class="stat-icon">📊</div><div class="stat-value">${avg}%</div><div class="stat-label">গড় উপস্থিতি</div></div>
+      <div class="stat-card purple"><div class="stat-icon">✅</div><div class="stat-value">${goodCount}</div><div class="stat-label">নিরাপদ সাবজেক্ট</div></div>
+      <div class="stat-card red"><div class="stat-icon">⚠️</div><div class="stat-value">${lowCount}</div><div class="stat-label">Low Attendance</div></div>
+      <div class="stat-card yellow"><div class="stat-icon">🏫</div><div class="stat-value">${totalPresent}/${totalClasses}</div><div class="stat-label">মোট উপস্থিতি</div></div>`;
+
+    // Warning box
+    if (warningSubjects.length > 0) {
+      document.getElementById('warningBox').style.display = 'flex';
+      document.getElementById('warningMsg').textContent = warningSubjects.join(', ') + ' — এই সাবজেক্টে আপনার উপস্থিতি ৭৫% এর নিচে। দ্রুত ব্যবস্থা নিন!';
+    }
+  </script>
+</body>
+</html>

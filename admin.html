@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — EduBD Pro</title>
+  <meta name="description" content="Admin and teacher panel for managing students, submissions and marks">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-top-bar { position:fixed;top:0;left:0;right:0;height:65px;background:rgba(10,10,20,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:0 24px; }
+    .admin-wrap { display:flex; padding-top:65px; min-height:100vh; }
+    .admin-side { width:240px;position:fixed;top:65px;left:0;bottom:0;background:rgba(12,12,22,0.98);border-right:1px solid var(--border);padding:20px 12px;overflow-y:auto;z-index:900; }
+    .admin-content { flex:1;margin-left:240px;padding:30px;background:var(--bg-main);min-height:calc(100vh - 65px); }
+    .admin-nav { list-style:none;display:flex;flex-direction:column;gap:4px; }
+    .admin-nav li a { display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--radius-sm);color:var(--text-secondary);transition:var(--transition);font-size:0.9rem;font-weight:500; }
+    .admin-nav li a:hover, .admin-nav li a.active { background:rgba(108,99,255,0.15);color:var(--text-primary);border-left:3px solid var(--primary); }
+    .admin-section { display:none; }
+    .admin-section.active { display:block; animation:fadeIn 0.3s ease; }
+    .student-row-mark { width:70px;padding:5px 8px;background:var(--bg-main);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:0.85rem;text-align:center; }
+    .student-row-mark:focus { border-color:var(--primary); outline:none; }
+    .user-card { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;display:flex;align-items:center;gap:14px;transition:var(--transition); }
+    .user-card:hover { border-color:var(--primary);background:rgba(108,99,255,0.05); }
+    .user-avatar-sm { width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0; }
+    .announce-form { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px; }
+    select.form-control { appearance:auto; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <!-- Top Bar -->
+  <div class="admin-top-bar">
+    <div class="nav-brand" style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.3rem;">
+      <div class="logo-icon" style="width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">⚡</div>
+      <span style="background:linear-gradient(135deg,var(--primary-light),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">EduBD Pro</span>
+      <span style="font-size:0.7rem;background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.3);color:var(--primary-light);padding:3px 8px;border-radius:6px;font-weight:700;margin-left:4px;">ADMIN</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="adminAvatarName" style="font-size:0.9rem;color:var(--text-secondary);"></div>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="admin-wrap">
+    <!-- Sidebar -->
+    <aside class="admin-side">
+      <ul class="admin-nav">
+        <li><span class="sidebar-section">Dashboard</span></li>
+        <li><a href="#" class="active" onclick="showSection('overview',this)"><span class="icon">📊</span> Overview</a></li>
+        <li><span class="sidebar-section">Management</span></li>
+        <li><a href="#" onclick="showSection('students',this)"><span class="icon">👥</span> Students</a></li>
+        <li><a href="#" onclick="showSection('submissions',this)"><span class="icon">📝</span> Submissions</a></li>
+        <li><a href="#" onclick="showSection('marks',this)"><span class="icon">🏆</span> Marks Entry</a></li>
+        <li><a href="#" onclick="showSection('attendance',this)"><span class="icon">📅</span> Attendance</a></li>
+        <li><span class="sidebar-section">Communication</span></li>
+        <li><a href="#" onclick="showSection('announce',this)"><span class="icon">📢</span> Announcement</a></li>
+        <li><span class="sidebar-section">Other</span></li>
+        <li><a href="index.html"><span class="icon">🚪</span> Back to Login</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+
+      <!-- Overview -->
+      <div class="admin-section active" id="sec-overview">
+        <div class="page-header">
+          <h1 class="page-title">📊 Admin Overview</h1>
+          <p class="page-subtitle" id="adminWelcome"></p>
+        </div>
+        <div class="stats-grid" id="adminStats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" id="adminOverviewGrid">
+          <div class="card">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;">👥 Students List</h3>
+            <div id="overviewStudents"></div>
+          </div>
+          <div class="card">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px;">📋 Recent Submissions</h3>
+            <div id="overviewSubs"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Students -->
+      <div class="admin-section" id="sec-students">
+        <div class="page-header">
+          <h1 class="page-title">👥 Students</h1>
+          <p class="page-subtitle">সকল শিক্ষার্থীর তালিকা ও বিস্তারিত তথ্য</p>
+        </div>
+        <div style="margin-bottom:16px;"><input type="text" class="form-control" id="studentSearch" placeholder="🔍 নাম বা Roll দিয়ে খুঁজুন..." oninput="filterStudents()" style="max-width:360px;"></div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>নাম</th><th>Board Roll</th><th>Reg. No.</th><th>Phone</th><th>Semester</th><th>Shift</th><th>Action</th></tr></thead>
+              <tbody id="studentTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submissions Management -->
+      <div class="admin-section" id="sec-submissions">
+        <div class="page-header">
+          <h1 class="page-title">📝 Submissions Overview</h1>
+          <p class="page-subtitle">কোন শিক্ষার্থী কোন কাজ জমা দিয়েছে</p>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+          <select class="form-control" id="subFilterSub" onchange="renderSubmissionsTable()" style="max-width:240px;">
+            ${SUBJECTS_7TH.map(s => `<option value="${s.code}">${s.short} (${s.code})</option>`).join('')}
+          </select>
+          <select class="form-control" id="subFilterType" onchange="renderSubmissionsTable()" style="max-width:180px;">
+            <option value="job_report">Job Report</option>
+            <option value="assignment">Assignment</option>
+            <option value="quiz">Quiz</option>
+            <option value="class_test">Class Test</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Roll</th><th>নাম</th><th>জমার তারিখ</th><th>অবস্থা</th><th>নম্বর</th></tr></thead>
+            <tbody id="subsTable"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- Marks Entry -->
+      <div class="admin-section" id="sec-marks">
+        <div class="page-header">
+          <h1 class="page-title">🏆 Marks Entry</h1>
+          <p class="page-subtitle">শিক্ষার্থীদের নম্বর প্রদান করুন</p>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+          <select class="form-control" id="marksSubject" onchange="renderMarksTable()" style="max-width:240px;">
+            ${SUBJECTS_7TH.map(s => `<option value="${s.code}">${s.short} (${s.code})</option>`).join('')}
+          </select>
+          <select class="form-control" id="marksType" onchange="renderMarksTable()" style="max-width:180px;">
+            <option value="assignment">Assignment (20)</option>
+            <option value="quiz">Quiz (10)</option>
+            <option value="class_test">Class Test (20)</option>
+            <option value="job_report">Job Report (25)</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Roll</th><th>নাম</th><th>জমার তারিখ</th><th>অবস্থা</th><th>নম্বর দিন</th><th>Save</th></tr></thead>
+            <tbody id="marksTable"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- Attendance Management -->
+      <div class="admin-section" id="sec-attendance">
+        <div class="page-header">
+          <h1 class="page-title">📅 Attendance Overview</h1>
+          <p class="page-subtitle">সকল শিক্ষার্থীর সাবজেক্ট-ওয়াইজ উপস্থিতি</p>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>নাম</th>
+                  ${SUBJECTS_7TH.map(s => `<th>${s.short}</th>`).join('')}
+                  <th>গড়</th>
+                </tr>
+              </thead>
+              <tbody id="adminAttendTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Announcement -->
+      <div class="admin-section" id="sec-announce">
+        <div class="page-header">
+          <h1 class="page-title">📢 Announcement</h1>
+          <p class="page-subtitle">শিক্ষার্থীদের কাছে নোটিশ পাঠান</p>
+        </div>
+        <div class="announce-form">
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:20px;">নতুন নোটিশ তৈরি করুন</h3>
+          <div class="form-group">
+            <label class="form-label">নোটিশের শিরোনাম</label>
+            <input type="text" class="form-control" id="notifTitle" placeholder="যেমন: Assignment Due Date...">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">ধরন</label>
+              <select class="form-control" id="notifType">
+                <option value="assignment">Assignment</option>
+                <option value="quiz">Quiz</option>
+                <option value="attendance">Attendance</option>
+                <option value="classtest">Class Test</option>
+                <option value="syllabus">Syllabus</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Icon Color</label>
+              <select class="form-control" id="notifColor">
+                <option value="purple">Purple</option>
+                <option value="teal">Teal</option>
+                <option value="yellow">Yellow</option>
+                <option value="red">Red</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">বার্তা</label>
+            <textarea class="form-control" id="notifMsg" rows="4" placeholder="নোটিশের বিস্তারিত লিখুন..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="publishNotif()">📢 প্রকাশ করুন</button>
+        </div>
+
+        <!-- Existing notifs -->
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:14px;">বিদ্যমান নোটিশ সমূহ</h3>
+        <div id="adminNotifList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    requireAdmin();
+    const user = getCurrentUser();
+    document.getElementById('adminAvatarName').textContent = user.name + ' (' + user.role + ')';
+    document.getElementById('adminWelcome').textContent = 'স্বাগতম, ' + user.name + '! সব কিছু ম্যানেজ করুন এখান থেকে।';
+
+    let allSubs = store.get('submissions') || {};
+    const users = (store.get('users') || []).filter(u => u.role === 'student');
+    const attendance = store.get('attendance') || {};
+
+    // ===== SECTION TOGGLE =====
+    function showSection(name, el) {
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.admin-nav li a').forEach(a => a.classList.remove('active'));
+      document.getElementById('sec-' + name).classList.add('active');
+      if (el) el.classList.add('active');
+
+      if (name === 'overview') renderOverview();
+      if (name === 'students') renderStudents();
+      if (name === 'submissions') renderSubmissionsTable();
+      if (name === 'marks') renderMarksTable();
+      if (name === 'attendance') renderAdminAttendance();
+      if (name === 'announce') renderAdminNotifs();
+    }
+
+    // ===== OVERVIEW =====
+    function renderOverview() {
+      let totalSubs = 0, pending = 0;
+      users.forEach(u => {
+        SUBJECTS_7TH.forEach(s => {
+          ['job_report','assignment','quiz','class_test'].forEach(t => {
+            const d = (allSubs[s.code] || {})[t] || [];
+            const m = d.find(x => x.studentId === u.id);
+            totalSubs++;
+            if (!m || !m.submitted) pending++;
+          });
+        });
+      });
+
+      document.getElementById('adminStats').innerHTML = `
+        <div class="stat-card purple"><div class="stat-icon">👥</div><div class="stat-value">${users.length}</div><div class="stat-label">মোট শিক্ষার্থী</div></div>
+        <div class="stat-card teal"><div class="stat-icon">📚</div><div class="stat-value">${SUBJECTS_7TH.length}</div><div class="stat-label">সাবজেক্ট</div></div>
+        <div class="stat-card yellow"><div class="stat-icon">✅</div><div class="stat-value">${totalSubs - pending}</div><div class="stat-label">মোট জমা</div></div>
+        <div class="stat-card red"><div class="stat-icon">⏳</div><div class="stat-value">${pending}</div><div class="stat-label">Pending</div></div>`;
+
+      document.getElementById('overviewStudents').innerHTML = users.map(u => `
+        <div class="user-card" style="margin-bottom:8px;">
+          <div class="user-avatar-sm">${u.name.charAt(0)}</div>
+          <div>
+            <div style="font-weight:600;font-size:0.9rem;">${u.name}</div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);">Roll: ${u.boardRoll}</div>
+          </div>
+        </div>`).join('');
+
+      // Recent: last 5 submissions
+      let recent = [];
+      users.forEach(u => {
+        SUBJECTS_7TH.forEach(s => {
+          ['assignment','quiz'].forEach(t => {
+            const d = (allSubs[s.code] || {})[t] || [];
+            const m = d.find(x => x.studentId === u.id);
+            if (m && m.submitted) recent.push({ name: u.name, sub: s.short, type: t, date: m.date });
+          });
+        });
+      });
+      recent = recent.slice(0, 5);
+      document.getElementById('overviewSubs').innerHTML = recent.map(r => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.84rem;">
+          <span>${r.name} — ${r.sub}</span>
+          <span class="badge badge-success">${r.type}</span>
+        </div>`).join('') || '<p style="color:var(--text-muted);font-size:0.85rem;">কোনো সাম্প্রতিক জমা নেই।</p>';
+    }
+
+    // ===== STUDENTS =====
+    let filteredStudents = [...users];
+    function renderStudents(list = users) {
+      document.getElementById('studentTable').innerHTML = list.map((u, i) => `
+        <tr>
+          <td>${i+1}</td>
+          <td><strong>${u.name}</strong></td>
+          <td><span class="badge badge-primary">${u.boardRoll}</span></td>
+          <td style="color:var(--text-secondary);font-size:0.82rem;">${u.regNo}</td>
+          <td style="font-size:0.82rem;">${u.phone}</td>
+          <td>৭ম</td>
+          <td>Shift ${u.shift}</td>
+          <td><button class="btn btn-outline btn-sm" onclick="viewStudent('${u.id}')">বিস্তারিত</button></td>
+        </tr>`).join('');
+    }
+
+    function filterStudents() {
+      const q = document.getElementById('studentSearch').value.toLowerCase();
+      const filtered = users.filter(u => u.name.toLowerCase().includes(q) || u.boardRoll.toLowerCase().includes(q));
+      renderStudents(filtered);
+    }
+
+    function viewStudent(id) {
+      const u = users.find(x => x.id === id);
+      if (!u) return;
+      showToast('শিক্ষার্থী: ' + u.name + ' | Roll: ' + u.boardRoll, 'info');
+    }
+
+    // ===== SUBMISSIONS TABLE =====
+    function renderSubmissionsTable() {
+      const sub = document.getElementById('subFilterSub').value;
+      const type = document.getElementById('subFilterType').value;
+      const data = (allSubs[sub] || {})[type] || [];
+
+      // Make sure all students are present
+      const tableData = users.map(u => {
+        const found = data.find(x => x.studentId === u.id);
+        return found || { studentId: u.id, studentName: u.name, roll: u.boardRoll, submitted: false, date: null, marks: null };
+      });
+
+      document.getElementById('subsTable').innerHTML = tableData.map(d => `
+        <tr>
+          <td><span class="badge badge-primary">${d.roll}</span></td>
+          <td>${d.studentName}</td>
+          <td style="color:var(--text-secondary);font-size:0.85rem;">${d.date || '—'}</td>
+          <td><span class="badge ${d.submitted ? 'badge-success' : 'badge-danger'}">${d.submitted ? '✅ জমা' : '❌ বাকি'}</span></td>
+          <td>${d.marks !== null ? `<strong style="color:var(--primary-light);">${d.marks}</strong>` : '<span style="color:var(--text-muted);">—</span>'}</td>
+        </tr>`).join('');
+    }
+
+    // ===== MARKS =====
+    const maxMap = { assignment: 20, quiz: 10, class_test: 20, job_report: 25 };
+
+    function renderMarksTable() {
+      const sub = document.getElementById('marksSubject').value;
+      const type = document.getElementById('marksType').value;
+      const data = (allSubs[sub] || {})[type] || [];
+      const max = maxMap[type];
+
+      const tableData = users.map(u => {
+        const found = data.find(x => x.studentId === u.id);
+        return found || { studentId: u.id, studentName: u.name, roll: u.boardRoll, submitted: false, date: null, marks: null };
+      });
+
+      document.getElementById('marksTable').innerHTML = tableData.map(d => `
+        <tr>
+          <td><span class="badge badge-primary">${d.roll}</span></td>
+          <td>${d.studentName}</td>
+          <td style="font-size:0.85rem;color:var(--text-secondary);">${d.date || '—'}</td>
+          <td><span class="badge ${d.submitted ? 'badge-success' : 'badge-danger'}">${d.submitted ? '✅' : '❌'}</span></td>
+          <td>
+            ${d.submitted ? `<input type="number" class="student-row-mark" id="mark_${d.studentId}" value="${d.marks || ''}" min="0" max="${max}" placeholder="/${max}">` : '<span style="color:var(--text-muted);font-size:0.82rem;">জমা দেয়নি</span>'}
+          </td>
+          <td>
+            ${d.submitted ? `<button class="btn btn-secondary btn-sm" onclick="saveMark('${sub}','${type}','${d.studentId}',${max})">💾 Save</button>` : ''}
+          </td>
+        </tr>`).join('');
+    }
+
+    function saveMark(sub, type, studentId, max) {
+      const inp = document.getElementById('mark_' + studentId);
+      if (!inp) return;
+      const val = parseInt(inp.value);
+      if (isNaN(val) || val < 0 || val > max) { showToast('সর্বোচ্চ ' + max + ' নম্বর দেওয়া যাবে!', 'error'); return; }
+      if (!allSubs[sub]) allSubs[sub] = {};
+      if (!allSubs[sub][type]) allSubs[sub][type] = [];
+      const idx = allSubs[sub][type].findIndex(x => x.studentId === studentId);
+      if (idx >= 0) { allSubs[sub][type][idx].marks = val; }
+      store.set('submissions', allSubs);
+      showToast('নম্বর সংরক্ষিত হয়েছে!', 'success');
+    }
+
+    // ===== ATTENDANCE =====
+    function renderAdminAttendance() {
+      document.getElementById('adminAttendTable').innerHTML = users.map(u => {
+        const myA = attendance[u.id] || {};
+        let total = 0;
+        const cells = SUBJECTS_7TH.map(s => {
+          const a = myA[s.code] || { total: 20, attended: 15 };
+          const pct = Math.round((a.attended / a.total) * 100);
+          total += pct;
+          const color = pct >= 75 ? 'var(--success)' : pct >= 60 ? 'var(--yellow)' : 'var(--warning)';
+          return `<td><strong style="color:${color};">${pct}%</strong></td>`;
+        }).join('');
+        const avg = Math.round(total / SUBJECTS_7TH.length);
+        return `<tr><td><strong>${u.name}</strong><br><span style="font-size:0.75rem;color:var(--text-secondary);">${u.boardRoll}</span></td>${cells}<td><strong>${avg}%</strong></td></tr>`;
+      }).join('');
+    }
+
+    // ===== ANNOUNCEMENTS =====
+    function renderAdminNotifs() {
+      const notifs = store.get('notifications') || [];
+      const el = document.getElementById('adminNotifList');
+      el.innerHTML = notifs.map(n => `
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="notif-icon ${n.iconClass}" style="width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;">${n.icon}</div>
+            <div>
+              <div style="font-weight:600;font-size:0.88rem;">${n.title}</div>
+              <div style="font-size:0.76rem;color:var(--text-muted);">${n.time}</div>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteAdminNotif('${n.id}')">🗑️</button>
+        </div>`).join('') || '<div class="empty-state"><div class="empty-icon">📭</div><p>কোনো নোটিশ নেই।</p></div>';
+    }
+
+    function publishNotif() {
+      const title = document.getElementById('notifTitle').value.trim();
+      const msg = document.getElementById('notifMsg').value.trim();
+      const type = document.getElementById('notifType').value;
+      const color = document.getElementById('notifColor').value;
+      if (!title || !msg) { showToast('শিরোনাম ও বার্তা দিন!', 'error'); return; }
+
+      const icons = { assignment:'📝', quiz:'📊', attendance:'⚠️', classtest:'✏️', syllabus:'📚' };
+      const notifs = store.get('notifications') || [];
+      notifs.unshift({
+        id: 'n' + Date.now(),
+        title, message: msg, type,
+        icon: icons[type] || '🔔',
+        iconClass: color,
+        time: 'এইমাত্র',
+        unread: true
+      });
+      store.set('notifications', notifs);
+      showToast('নোটিশ প্রকাশিত হয়েছে!', 'success');
+      document.getElementById('notifTitle').value = '';
+      document.getElementById('notifMsg').value = '';
+      renderAdminNotifs();
+    }
+
+    function deleteAdminNotif(id) {
+      let notifs = store.get('notifications') || [];
+      notifs = notifs.filter(n => n.id !== id);
+      store.set('notifications', notifs);
+      showToast('নোটিশ মুছে ফেলা হয়েছে', 'info');
+      renderAdminNotifs();
+    }
+
+    // Init
+    renderOverview();
+  </script>
+</body>
+</html>
